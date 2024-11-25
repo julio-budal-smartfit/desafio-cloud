@@ -3,10 +3,6 @@ provider "aws" {
   region = "us-east-1"
 }
 
-#####################################
-# VPC and Networking Configuration
-#####################################
-
 resource "aws_vpc" "cloudwise_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
@@ -561,6 +557,17 @@ resource "aws_lb_listener" "front_end" {
   }
 }
 
+resource "aws_lb_listener" "front_end_https" {
+  load_balancer_arn = aws_lb.cloudwise_alb.arn
+  port              = "443"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.cloudwise_tg.arn
+  }
+}
+
 resource "aws_ecs_service" "cloudwise_service" {
   name            = "cloudwise-service"
   cluster         = aws_ecs_cluster.cloudwise_cluster.id
@@ -580,7 +587,7 @@ resource "aws_ecs_service" "cloudwise_service" {
     container_port   = 3000
   }
 
-  depends_on = [aws_lb_listener.front_end]
+  depends_on = [aws_lb_listener.front_end, aws_lb_listener.front_end_https]
 
   tags = {
     Name = "cloudwise-service"
